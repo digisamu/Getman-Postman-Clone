@@ -1,26 +1,48 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
-  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        ink: {
-          50: "#f7f8fa",
-          100: "#edf0f3",
-          200: "#d8dde4",
-          500: "#667085",
-          700: "#344054",
-          900: "#111827",
-          950: "#090d14"
-        }
+        bg: "var(--bg)",
+        sidebar: "var(--sidebar)",
+        surface: "var(--surface)",
+        field: "var(--field)",
+        elevated: "var(--elevated)",
+        line: "var(--border)",
+        "line-strong": "var(--border-strong)",
+        hover: "var(--hover)",
+        selected: "var(--selected)",
+        fg: "var(--text)",
+        muted: "var(--text-muted)",
+        faint: "var(--text-faint)",
+        accent: "var(--accent)",
+        "accent-hover": "var(--accent-hover)",
+        "accent-fg": "var(--accent-fg)",
+        "accent-soft": "var(--accent-soft)",
+        success: "var(--success)",
+        warning: "var(--warning)",
+        danger: "var(--danger)",
+        info: "var(--info)"
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "SFMono-Regular", "ui-monospace", "monospace"]
+        sans: ["var(--font-sans)"],
+        mono: ["var(--font-mono)"],
+        display: ["var(--font-display)"]
+      },
+      fontSize: {
+        "2xs": ["11px", "16px"],
+        xs: ["12px", "16px"],
+        sm: ["13px", "20px"],
+        base: ["14px", "22px"]
+      },
+      borderRadius: {
+        DEFAULT: "var(--radius)",
+        md: "var(--radius)",
+        lg: "var(--radius-lg)"
       },
       boxShadow: {
-        focus: "0 0 0 3px rgb(14 165 233 / 0.25)"
+        pop: "var(--shadow-pop)"
       }
     }
   },

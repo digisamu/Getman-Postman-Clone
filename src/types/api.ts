@@ -1,6 +1,10 @@
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
 
-export type BodyType = "json" | "raw" | "form-data" | "urlencoded";
+export type BodyType = "none" | "json" | "raw" | "form-data" | "urlencoded";
+
+export type AuthType = "none" | "bearer" | "basic";
+
+export type Theme = "postman" | "dark" | "light" | "sydney";
 
 export type KeyValueRow = {
   id: string;
@@ -15,25 +19,23 @@ export type RequestBody = {
   fields: KeyValueRow[];
 };
 
+export type RequestAuth = {
+  type: AuthType;
+  token: string;
+  username: string;
+  password: string;
+};
+
 export type ApiRequest = {
   id: string;
   name: string;
   method: HttpMethod;
   url: string;
   headers: KeyValueRow[];
+  /** Kept in sync with the query string of `url`; disabled rows exist only here. */
   queryParams: KeyValueRow[];
   body: RequestBody;
-};
-
-export type ResponseRecord = {
-  status: number;
-  statusText: string;
-  timeMs: number;
-  sizeBytes: number;
-  headers: Record<string, string>;
-  cookies: string[];
-  body: unknown;
-  rawBody: string;
+  auth: RequestAuth;
 };
 
 export type CollectionRequest = ApiRequest & {
@@ -55,10 +57,10 @@ export type Collection = {
 
 export type HistoryEntry = {
   id: string;
-  method: HttpMethod;
-  url: string;
   timestamp: string;
   request: ApiRequest;
+  status: number | null;
+  timeMs: number | null;
 };
 
 export type Environment = {
@@ -67,11 +69,49 @@ export type Environment = {
   variables: KeyValueRow[];
 };
 
+export type RequestSource = {
+  collectionId: string;
+  folderId: string;
+  requestId: string;
+};
+
+export type RequestTab = {
+  id: string;
+  request: ApiRequest;
+  source: RequestSource | null;
+  dirty: boolean;
+};
+
+export type Settings = {
+  timeoutMs: number;
+  verifySsl: boolean;
+  followRedirects: boolean;
+  layout: "horizontal" | "vertical";
+};
+
 export type Workspace = {
-  theme: "dark" | "light" | "postman" | "sydney";
-  activeEnvironmentId: string;
+  version: 2;
+  theme: Theme;
+  activeEnvironmentId: string | null;
   environments: Environment[];
   collections: Collection[];
   history: HistoryEntry[];
-  activeRequest: ApiRequest;
+  tabs: RequestTab[];
+  activeTabId: string;
+  settings: Settings;
+  sidebarWidth: number;
+  splitRatio: number;
+};
+
+export type ResponseRecord = {
+  status: number;
+  statusText: string;
+  url: string;
+  headers: Array<[string, string]>;
+  cookies: string[];
+  contentType: string;
+  timeMs: number;
+  sizeBytes: number;
+  bodyText: string | null;
+  bodyBase64: string | null;
 };

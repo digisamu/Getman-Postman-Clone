@@ -1,71 +1,222 @@
-import { Clipboard, KeyRound, Shuffle } from "lucide-react";
-import { useMemo, useState } from "react";
-import { parseJsonSafely } from "../lib/json";
-import { base64Decode, base64Encode, decodeJwt, uuidV4 } from "../lib/tools";
+import { Copy, RefreshCw, X } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { base64Decode, base64Encode, decodeJwt } from "../lib/tools";
+import { copyText, useUi } from "../store/ui";
 
-async function copy(value: string) {
-  await navigator.clipboard.writeText(value);
-}
+type Tool = "jwt" | "base64" | "json" | "uuid" | "time";
+
+const TOOLS: Array<{ id: Tool; label: string }> = [
+  { id: "jwt", label: "JWT" },
+  { id: "base64", label: "Base64" },
+  { id: "json", label: "JSON" },
+  { id: "uuid", label: "UUID" },
+  { id: "time", label: "Timestamp" }
+];
 
 export function ToolsPanel() {
-  const [jwt, setJwt] = useState("");
-  const [uuid, setUuid] = useState(uuidV4());
-  const [base64, setBase64] = useState("");
-  const [json, setJson] = useState("{\n  \n}");
-  const decodedJwt = useMemo(() => {
-    if (!jwt.trim()) return null;
-    try {
-      return decodeJwt(jwt.trim());
-    } catch (error) {
-      return { error: error instanceof Error ? error.message : "Invalid JWT" };
-    }
-  }, [jwt]);
-  const parsedJson = useMemo(() => parseJsonSafely(json), [json]);
+  const [tool, setTool] = useState<Tool>("jwt");
+  const close = () => useUi.getState().setToolsOpen(false);
 
   return (
-    <div className="h-[calc(100vh-3rem)] overflow-auto p-4 thin-scrollbar">
-      <section className="mb-5 rounded border border-ink-200 p-3 dark:border-white/10">
-        <div className="mb-2 flex items-center gap-2 font-semibold"><KeyRound size={15} /> JWT Decoder</div>
-        <textarea className="min-h-24 w-full rounded border border-ink-200 bg-white p-2 font-mono text-sm dark:border-white/10 dark:bg-ink-950" value={jwt} onChange={(event) => setJwt(event.target.value)} placeholder="Paste JWT" />
-        {decodedJwt && "error" in decodedJwt && <div className="mt-2 text-sm text-rose-500">{decodedJwt.error}</div>}
-        {decodedJwt && !("error" in decodedJwt) && (
-          <div className="mt-3 space-y-2">
-            <pre className="rounded bg-ink-950 p-2 text-xs text-white">Header: {JSON.stringify(decodedJwt.header, null, 2)}</pre>
-            <pre className="rounded bg-ink-950 p-2 text-xs text-white">Payload: {JSON.stringify(decodedJwt.payload, null, 2)}</pre>
-            <div className="text-sm text-ink-500">Expiration: {decodedJwt.expiration}</div>
-          </div>
+    <aside className="flex h-full w-[380px] shrink-0 flex-col border-l border-line bg-sidebar">
+      <div className="flex h-11 shrink-0 items-center justify-between border-b border-line pl-4 pr-2">
+        <span className="text-sm font-semibold">Developer tools</span>
+        <button className="icon-btn" onClick={close} aria-label="Close tools">
+          <X size={15} />
+        </button>
+      </div>
+      <div className="shrink-0 px-4 pt-3">
+        <div className="seg flex w-full">
+          {TOOLS.map((item) => (
+            <button key={item.id} className="seg-item flex-1 px-1" data-active={tool === item.id} onClick={() => setTool(item.id)}>
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto p-4">
+        {tool === "jwt" && <JwtTool />}
+        {tool === "base64" && <Base64Tool />}
+        {tool === "json" && <JsonTool />}
+        {tool === "uuid" && <UuidTool />}
+        {tool === "time" && <TimestampTool />}
+      </div>
+    </aside>
+  );
+}
+
+function Output({ label, value, tone }: { label: string; value: string; tone?: "danger" }) {
+  return (
+    <div className="mt-3">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-xs font-medium text-muted">{label}</span>
+        {!tone && value && (
+          <button className="btn-ghost h-6 px-1.5 text-xs" onClick={() => copyText(value)}>
+            <Copy size={12} />
+            Copy
+          </button>
         )}
-      </section>
+      </div>
+      <pre className={`selectable max-h-80 overflow-auto whitespace-pre-wrap break-all rounded border border-line bg-field p-2.5 font-mono text-xs ${tone === "danger" ? "text-danger" : ""}`}>{value || " "}</pre>
+    </div>
+  );
+}
 
-      <section className="mb-5 rounded border border-ink-200 p-3 dark:border-white/10">
-        <div className="mb-2 flex items-center gap-2 font-semibold"><Shuffle size={15} /> UUID v4</div>
-        <div className="flex gap-2">
-          <input className="min-w-0 flex-1 rounded border border-ink-200 bg-white px-2 py-2 font-mono text-sm dark:border-white/10 dark:bg-ink-950" value={uuid} readOnly />
-          <button className="rounded border border-ink-200 p-2 dark:border-white/10" onClick={() => copy(uuid)} title="Copy UUID"><Clipboard size={15} /></button>
-          <button className="rounded bg-sky-500 px-3 py-2 text-sm font-semibold text-white" onClick={() => setUuid(uuidV4())}>Generate</button>
-        </div>
-      </section>
+function Area({ value, onChange, placeholder, rows = 5 }: { value: string; onChange: (value: string) => void; placeholder: string; rows?: number }) {
+  return (
+    <textarea
+      className="input h-auto resize-y py-2 font-mono text-xs leading-5"
+      rows={rows}
+      spellCheck={false}
+      value={value}
+      placeholder={placeholder}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
 
-      <section className="mb-5 rounded border border-ink-200 p-3 dark:border-white/10">
-        <div className="mb-2 font-semibold">Base64</div>
-        <textarea className="min-h-20 w-full rounded border border-ink-200 bg-white p-2 font-mono text-sm dark:border-white/10 dark:bg-ink-950" value={base64} onChange={(event) => setBase64(event.target.value)} />
-        <div className="mt-2 flex gap-2">
-          <button className="rounded border border-ink-200 px-3 py-2 text-sm dark:border-white/10" onClick={() => setBase64(base64Encode(base64))}>Encode</button>
-          <button className="rounded border border-ink-200 px-3 py-2 text-sm dark:border-white/10" onClick={() => setBase64(base64Decode(base64))}>Decode</button>
-          <button className="rounded border border-ink-200 px-3 py-2 text-sm dark:border-white/10" onClick={() => copy(base64)}>Copy</button>
-        </div>
-      </section>
+function Hint({ children }: { children: ReactNode }) {
+  return <p className="mb-3 text-xs text-muted">{children}</p>;
+}
 
-      <section className="rounded border border-ink-200 p-3 dark:border-white/10">
-        <div className="mb-2 font-semibold">JSON Formatter</div>
-        <textarea className="min-h-36 w-full rounded border border-ink-200 bg-white p-2 font-mono text-sm dark:border-white/10 dark:bg-ink-950" value={json} onChange={(event) => setJson(event.target.value)} />
-        {parsedJson.error && <div className="mt-2 text-sm text-rose-500">JSON error: {parsedJson.error}</div>}
-        <div className="mt-2 flex gap-2">
-          <button className="rounded border border-ink-200 px-3 py-2 text-sm dark:border-white/10" disabled={Boolean(parsedJson.error)} onClick={() => setJson(JSON.stringify(parsedJson.value, null, 2))}>Format</button>
-          <button className="rounded border border-ink-200 px-3 py-2 text-sm dark:border-white/10" disabled={Boolean(parsedJson.error)} onClick={() => setJson(JSON.stringify(parsedJson.value))}>Minify</button>
-          <button className="rounded border border-ink-200 px-3 py-2 text-sm dark:border-white/10" onClick={() => copy(json)}>Copy</button>
-        </div>
-      </section>
+function JwtTool() {
+  const [token, setToken] = useState("");
+  const result = useMemo(() => {
+    if (!token.trim()) return null;
+    try {
+      return { ok: true as const, ...decodeJwt(token) };
+    } catch (error) {
+      return { ok: false as const, error: error instanceof Error ? error.message : "Invalid token" };
+    }
+  }, [token]);
+
+  return (
+    <div>
+      <Hint>Decodes the header and payload locally. The signature is not verified.</Hint>
+      <Area value={token} onChange={setToken} placeholder="Paste a JWT (with or without “Bearer”)" />
+      {result && !result.ok && <Output label="Error" value={result.error} tone="danger" />}
+      {result?.ok && (
+        <>
+          {result.expiresAt && (
+            <div className={`mt-3 rounded border border-line px-2.5 py-2 text-xs ${result.expired ? "text-danger" : "text-success"}`}>
+              {result.expired ? "Expired" : "Valid until"} {result.expiresAt.toLocaleString()}
+            </div>
+          )}
+          <Output label="Header" value={JSON.stringify(result.header, null, 2)} />
+          <Output label="Payload" value={JSON.stringify(result.payload, null, 2)} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function Base64Tool() {
+  const [input, setInput] = useState("");
+  const [mode, setMode] = useState<"encode" | "decode">("encode");
+  const output = useMemo(() => {
+    if (!input) return { value: "", error: false };
+    try {
+      return { value: mode === "encode" ? base64Encode(input) : base64Decode(input), error: false };
+    } catch (error) {
+      return { value: error instanceof Error ? error.message : "Invalid input", error: true };
+    }
+  }, [input, mode]);
+
+  return (
+    <div>
+      <div className="seg mb-3">
+        <button className="seg-item" data-active={mode === "encode"} onClick={() => setMode("encode")}>
+          Encode
+        </button>
+        <button className="seg-item" data-active={mode === "decode"} onClick={() => setMode("decode")}>
+          Decode
+        </button>
+      </div>
+      <Area value={input} onChange={setInput} placeholder={mode === "encode" ? "Text to encode" : "Base64 or base64url to decode"} />
+      <Output label="Result" value={output.value} tone={output.error ? "danger" : undefined} />
+    </div>
+  );
+}
+
+function JsonTool() {
+  const [input, setInput] = useState("");
+  const [indent, setIndent] = useState<"2" | "4" | "min">("2");
+  const output = useMemo(() => {
+    if (!input.trim()) return { value: "", error: false };
+    try {
+      const parsed = JSON.parse(input);
+      return { value: indent === "min" ? JSON.stringify(parsed) : JSON.stringify(parsed, null, Number(indent)), error: false };
+    } catch (error) {
+      return { value: error instanceof Error ? error.message : "Invalid JSON", error: true };
+    }
+  }, [input, indent]);
+
+  return (
+    <div>
+      <div className="seg mb-3">
+        {(["2", "4", "min"] as const).map((item) => (
+          <button key={item} className="seg-item" data-active={indent === item} onClick={() => setIndent(item)}>
+            {item === "min" ? "Minify" : `${item} spaces`}
+          </button>
+        ))}
+      </div>
+      <Area value={input} onChange={setInput} placeholder="Paste JSON to validate and format" rows={8} />
+      <Output label={output.error ? "Error" : "Result"} value={output.value} tone={output.error ? "danger" : undefined} />
+    </div>
+  );
+}
+
+function UuidTool() {
+  const generate = () => Array.from({ length: 5 }, () => crypto.randomUUID());
+  const [uuids, setUuids] = useState(generate);
+  return (
+    <div>
+      <Hint>Random version 4 UUIDs. Click one to copy it.</Hint>
+      <div className="space-y-1.5">
+        {uuids.map((uuid) => (
+          <button key={uuid} className="flex w-full items-center justify-between rounded border border-line bg-field px-2.5 py-2 text-left font-mono text-xs hover:border-line-strong" onClick={() => copyText(uuid)}>
+            {uuid}
+            <Copy size={12} className="text-faint" />
+          </button>
+        ))}
+      </div>
+      <button className="btn mt-3" onClick={() => setUuids(generate())}>
+        <RefreshCw size={13} />
+        Generate new
+      </button>
+    </div>
+  );
+}
+
+function TimestampTool() {
+  const [input, setInput] = useState(() => String(Math.floor(Date.now() / 1000)));
+  const result = useMemo(() => {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    const numeric = Number(trimmed);
+    const date = Number.isFinite(numeric) ? new Date(trimmed.length > 11 ? numeric : numeric * 1000) : new Date(trimmed);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }, [input]);
+
+  return (
+    <div>
+      <Hint>Converts Unix seconds, milliseconds or an ISO date.</Hint>
+      <div className="flex gap-2">
+        <input className="input font-mono text-xs" value={input} onChange={(event) => setInput(event.target.value)} spellCheck={false} />
+        <button className="btn" onClick={() => setInput(String(Math.floor(Date.now() / 1000)))}>
+          Now
+        </button>
+      </div>
+      {result ? (
+        <>
+          <Output label="Local time" value={result.toLocaleString()} />
+          <Output label="ISO 8601 (UTC)" value={result.toISOString()} />
+          <Output label="Unix seconds" value={String(Math.floor(result.getTime() / 1000))} />
+          <Output label="Unix milliseconds" value={String(result.getTime())} />
+        </>
+      ) : (
+        input.trim() && <Output label="Error" value="Not a recognised timestamp or date." tone="danger" />
+      )}
     </div>
   );
 }

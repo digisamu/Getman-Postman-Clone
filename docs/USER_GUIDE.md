@@ -1,281 +1,89 @@
-# Getman User Guide
+# User guide
 
-This guide explains how to use Getman as an offline-first API testing client.
+## The window
 
-## Workspace Overview
+- **Title bar**: active environment, theme, developer tools and settings.
+- **Sidebar**: collections and history, with a filter box.
+- **Tabs**: each open request has its own tab and keeps its own last response. A dot on a saved request's tab means it has unsaved changes. Italic names are requests not yet saved to a collection.
+- **Request**: name, URL bar, then Params, Auth, Headers, Body and Code.
+- **Response**: beside or below the request (change it in Settings). Drag the divider to resize; double-click it to reset.
 
-The main screen has three working areas:
+## Sending a request
 
-- Left sidebar: collections and request history
-- Center panel: request builder
-- Right panel: response viewer
+1. Pick a method from the menu at the left of the URL bar.
+2. Type a URL. A missing scheme is added when sending: `api.example.com` becomes `https://api.example.com`, and `localhost:3000` becomes `http://localhost:3000`.
+3. Press `⌘ Enter` / `Ctrl Enter` or click **Send**. Press `Esc` or click **Cancel** to stop it.
 
-The top bar contains:
+Paste a cURL command into the URL bar to turn it into a request, including method, headers, body and auth.
 
-- Active environment selector
-- Theme selector
-- Developer tools button
+## Query parameters
 
-## Request Builder
+Parameters you type in the URL appear in the **Params** table, and edits in the table update the URL. Unticking a row removes it from the URL but keeps it in the table, so you can switch it back on later. **Bulk edit** lets you paste `key: value` lines.
 
-The request builder lets you configure an HTTP request before sending it.
+## Headers
 
-### Supported Methods
+Start typing in the last row to add a header; common header names are suggested. Untick a row to stop sending it, or use the bin icon to delete it.
 
-Getman supports:
+## Auth
 
-- `GET`
-- `POST`
-- `PUT`
-- `PATCH`
-- `DELETE`
-- `HEAD`
-- `OPTIONS`
+- **Bearer token**: sent as `Authorization: Bearer <token>`.
+- **Basic auth**: sent as `Authorization: Basic <base64(username:password)>`.
 
-### URL Input
+If you add your own `Authorization` header, it wins.
 
-You can enter a full URL:
+## Body
 
-```text
-https://api.example.com/users
-```
-
-You can also omit the protocol:
-
-```text
-api.example.com/users
-```
-
-Getman will automatically convert it to:
-
-```text
-https://api.example.com/users
-```
-
-For local development, Getman uses `http://`:
-
-```text
-localhost:3000/users
-```
-
-becomes:
-
-```text
-http://localhost:3000/users
-```
-
-### Query Parameters
-
-Use the `Query Params` tab to add URL parameters.
-
-Example:
-
-| Key | Value |
+| Type | Sent as |
 | --- | --- |
-| page | 1 |
-| limit | 20 |
+| None | No body |
+| JSON | The text you type, with `Content-Type: application/json` unless you set one |
+| Text | The text you type, with `Content-Type: text/plain` unless you set one |
+| Form data | `multipart/form-data` |
+| URL-encoded | `application/x-www-form-urlencoded` |
 
-For:
+`GET` and `HEAD` requests never send a body. **Beautify** formats valid JSON.
 
-```text
-https://api.example.com/users
-```
+## Environments and variables
 
-Getman sends:
+Write variables as `{{NAME}}` anywhere in the URL, params, headers, auth or body. They are green when the active environment defines them and red when it does not.
 
-```text
-https://api.example.com/users?page=1&limit=20
-```
-
-Use the checkbox beside each row to enable or disable it.
-
-### Headers
-
-Use the `Headers` tab to add request headers.
-
-Common examples:
-
-| Key | Value |
-| --- | --- |
-| Accept | application/json |
-| Authorization | Bearer `{{TOKEN}}` |
-| Content-Type | application/json |
-
-### Body
-
-Use the `Body` tab for request payloads.
-
-Supported body types:
-
-- JSON
-- Raw text
-- Form data
-- `x-www-form-urlencoded`
-
-JSON bodies are validated before sending for methods that send a body. If the JSON is invalid, Getman shows an error.
-
-GET and HEAD requests ignore the body, so body validation does not block those requests.
-
-## Response Viewer
-
-After sending a request, the response panel shows:
-
-- HTTP status code
-- Status text
-- Response time
-- Response size
-- Body
-- Headers
-- Cookies
-
-### Body Tab
-
-JSON responses are rendered in a readable format with collapsible nodes.
-
-Text responses are shown as plain text.
-
-### Headers Tab
-
-The `Headers` tab lists response headers as key/value rows.
-
-### Cookies Tab
-
-The `Cookies` tab lists cookies returned by the response. If no cookies are returned, the panel shows an empty state.
+Choose the active environment from the title bar, or pick **Manage environments…** to add, rename, duplicate or delete environments and edit their variables.
 
 ## Collections
 
-Collections help organize reusable requests.
+Collections contain folders, and folders contain requests.
 
-Getman currently supports this structure:
+- **Save** (`⌘ S`) updates the saved request a tab came from, or asks where to save a new one.
+- **Save as…** (`⌘ ⇧ S`) saves a copy anywhere, including into a new collection or folder.
+- Use the `…` menu on a row, or double-click its name, to rename, duplicate, add folders or requests, export or delete.
+- **Import** reads Postman v2.0/v2.1 collections and collections exported from Getman. **Export** writes Postman v2.1, which Postman, Insomnia and Bruno can import.
 
-```text
-Collection
-└── Folder
-    ├── Request
-    └── Request
-```
+## History
 
-You can:
+Every request you send is recorded with its status and time, grouped by day (the 200 most recent are kept). Click an entry to open it in a new tab.
 
-- Create collections
-- Rename collections
-- Delete collections
-- Save the active request
-- Duplicate saved requests
-- Delete saved requests
-- Open a saved request into the builder
+## Response
 
-Saved requests are stored locally.
+- The status is green for 2xx, blue for 3xx, amber for 4xx and red for 5xx.
+- **Pretty** formats JSON; **Raw** shows the exact text; **Preview** renders HTML (scripts disabled) and images.
+- Use the toolbar to wrap lines, copy the body or save it to a file. `⌘ F` searches inside the body.
+- **Headers** and **Cookies** list what the server returned.
 
-## Request History
+## Code
 
-Getman stores the last 100 requests.
+The **Code** tab shows the current request, with variables resolved, as cURL, JavaScript `fetch`, Python `requests` or Java `HttpClient`. **Copy** copies the selected language.
 
-Each history entry includes:
+## Developer tools
 
-- Method
-- URL
-- Timestamp
-- Full request configuration
+The wrench opens a side panel with a JWT decoder (shows expiry), Base64 encode/decode (including base64url), a JSON formatter, a UUID v4 generator and a timestamp converter. Everything runs locally.
 
-Click a history item to load it back into the request builder.
+## Settings
 
-## Environments
+- **Request timeout** in milliseconds (`0` = no limit)
+- **Verify SSL certificates**
+- **Follow redirects**
+- **Response position**: beside or below the request
 
-Environments let you swap variables without editing every request.
+## Privacy
 
-Default environments:
-
-- Local
-- Development
-- Production
-
-Variables use double braces:
-
-```text
-{{BASE_URL}}/users/{{USER_ID}}
-```
-
-If the active environment has:
-
-```text
-BASE_URL = https://api.example.com
-USER_ID = 42
-```
-
-Getman sends:
-
-```text
-https://api.example.com/users/42
-```
-
-You can edit environment variables from the top bar environment menu.
-
-## Code Generation
-
-The `Code` tab can generate snippets for:
-
-- cURL
-- Python `requests`
-- JavaScript `fetch`
-- Java `HttpClient`
-
-Use `Copy cURL` to copy a ready-to-run cURL command.
-
-## Developer Tools
-
-Click the tools button in the top bar to open developer utilities.
-
-### JWT Decoder
-
-Paste a JWT token to decode:
-
-- Header
-- Payload
-- Expiration
-
-Decoding happens locally. No external service is called.
-
-### UUID Generator
-
-Generate UUID v4 values and copy them.
-
-### Base64 Tool
-
-Encode or decode Base64 text locally.
-
-### JSON Formatter
-
-Paste JSON and choose:
-
-- Format
-- Minify
-- Validate
-
-Invalid JSON shows an error.
-
-## Themes
-
-Use the theme selector in the top bar.
-
-Available themes:
-
-- Postman
-- Dark
-- Light
-- Sydney Sweeney
-
-The selected theme is saved locally.
-
-## Privacy Expectations
-
-Getman does not require:
-
-- Account login
-- Cloud storage
-- Synchronization
-- Telemetry
-- Analytics
-- Subscription
-
-The only network activity is the API request you explicitly send.
+Getman has no accounts, cloud sync, telemetry or analytics. The only network traffic is the requests you send.

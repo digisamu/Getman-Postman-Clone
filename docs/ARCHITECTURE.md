@@ -1,314 +1,59 @@
-# Getman Architecture
+# Architecture
 
-Getman is organized around a small clean architecture: UI components, business logic, HTTP execution, storage, and desktop integration are separated.
-
-## Goals
-
-- Keep the UI responsive and easy to change
-- Avoid giant components
-- Keep request preparation separate from rendering
-- Store everything locally
-- Use TypeScript for frontend safety
-- Use Tauri commands for desktop-only capabilities
-- Avoid a database
-
-## Layers
+Getman is an Electron app with a React renderer. The renderer never touches the network or the file system directly; it asks the main process through a small, typed bridge.
 
 ```text
-UI Components
-    ↓
-Zustand Workspace Store
-    ↓
-Business Logic Modules
-    ↓
-Storage Layer / HTTP Layer
-    ↓
-Tauri Commands or Browser Dev Fallbacks
+┌──────────────── Renderer (React, sandboxed) ────────────────┐
+│ components/  UI                                             │
+│ store/       zustand stores: workspace, responses, ui       │
+│ lib/         pure logic: url, variables, request, snippets, │
+│              curl, postman, migrate, format, tools          │
+│ lib/bridge   window.getman, or a browser fallback           │
+└────────────────────────────┬────────────────────────────────┘
+                             │ contextBridge + IPC (src/shared/ipc.ts)
+┌────────────────────────────┴────────────────────────────────┐
+│ electron/preload.ts   exposes window.getman                 │
+│ electron/main.ts      window, menu, workspace file, dialogs │
+│ electron/http.ts      undici HTTP engine                    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## UI Layer
+## Processes
 
-Location:
+- **Main** (`electron/main.ts`) creates a single hardened window (`contextIsolation`, `sandbox`, no Node integration, external links opened in the system browser), builds the native menu, and handles IPC: loading and saving the workspace, sending and cancelling requests, and file dialogs.
+- **Preload** (`electron/preload.ts`) exposes the `GetmanBridge` defined in `src/shared/ipc.ts`.
+- **Renderer** (`src/`) is a Vite + React 18 app. In production it is loaded from `dist/index.html` with a strict Content Security Policy.
 
-```text
-src/components
-```
+Main and preload are bundled with esbuild (`scripts/build-electron.mjs`), so the packaged app ships no `node_modules`.
 
-Main components:
+## HTTP
 
-- `CollectionsSidebar.tsx`: collections and request history
-- `EnvironmentBar.tsx`: environment selection and variable editing
-- `RequestBuilder.tsx`: method, URL, params, headers, body, and code generation
-- `ResponseViewer.tsx`: response status, body, headers, and cookies
-- `ToolsPanel.tsx`: JWT, UUID, Base64, and JSON tools
-- `KeyValueEditor.tsx`: reusable editor for key/value rows
+`electron/http.ts` sends requests with undici using two pooled keep-alive agents (one that verifies TLS certificates, one that does not). It supports cancellation, timeouts, redirect control and multipart bodies, and returns:
 
-The app shell is in:
+- status, status text, final URL, headers, `Set-Cookie` values
+- total time and body size in bytes
+- the body as text, or as base64 for binary content (used for image preview and saving)
 
-```text
-src/App.tsx
-```
+Network errors are translated into plain explanations (DNS failure, connection refused, certificate problems, timeouts).
 
-The entry point is:
+`src/lib/request.ts` turns an editable request into exactly what is sent: variables resolved, the scheme added when missing, auth headers applied, and a `Content-Type` added only when the user has not set one.
 
-```text
-src/main.tsx
-```
+## State
 
-## State Layer
+- `store/workspace.ts` holds everything that is persisted: tabs, collections, environments, history, settings and layout.
+- `store/responses.ts` keeps the last response per tab in memory only.
+- `store/ui.ts` holds dialogs, toasts and panel visibility.
 
-Location:
+Components subscribe to the smallest slice they need, so typing in one field does not re-render the rest of the app.
 
-```text
-src/store/workspace.ts
-```
+The URL is the single source of truth for enabled query parameters; `lib/url.ts` keeps the params table in sync with it while keeping row ids stable and disabled rows in place.
 
-The Zustand store owns:
+## Persistence
 
-- Active request
-- Theme
-- Active environment
-- Environments
-- Collections
-- History
-- Hydration state
+`store/persistence.ts` loads the workspace once before the first render and then saves it 400 ms after the last change, only when persisted data changed. Pending changes are flushed synchronously when the window closes. The main process writes to a temporary file and renames it, so a crash never leaves a half-written workspace.
 
-The store exposes actions for:
+`lib/migrate.ts` normalises whatever is on disk, including the 0.1 Tauri format (single active request, params outside the URL, default `{}` JSON bodies) and partially corrupted files.
 
-- Updating active requests
-- Updating headers/query params/body fields
-- Saving requests to collections
-- Creating, renaming, deleting collections
-- Duplicating and deleting saved requests
-- Updating environment variables
-- Adding request history
-- Persisting the workspace
+## Theming
 
-History is capped at 100 entries.
-
-## Types
-
-Location:
-
-```text
-src/types/api.ts
-```
-
-Important types:
-
-- `HttpMethod`
-- `BodyType`
-- `KeyValueRow`
-- `ApiRequest`
-- `ResponseRecord`
-- `Collection`
-- `CollectionFolder`
-- `HistoryEntry`
-- `Environment`
-- `Workspace`
-
-## Business Logic
-
-Location:
-
-```text
-src/lib
-```
-
-Modules:
-
-- `factory.ts`: creates initial workspace, requests, environments, and rows
-- `variables.ts`: replaces `{{VARIABLE}}` syntax
-- `json.tsx`: JSON validation, byte formatting, collapsible JSON rendering
-- `exporters.ts`: cURL and code snippet generation
-- `tools.ts`: JWT decode, UUID, Base64 helpers
-- `http.ts`: request preparation, URL normalization, and request execution
-- `storage.ts`: workspace loading/saving through Tauri or browser fallback
-
-## HTTP Flow
-
-The HTTP flow starts in:
-
-```text
-src/lib/http.ts
-```
-
-High-level process:
-
-1. Resolve environment variables.
-2. Normalize the URL.
-3. Add query parameters.
-4. Build headers.
-5. Serialize the request body.
-6. Choose the execution path.
-7. Convert the response into `ResponseRecord`.
-
-### URL Normalization
-
-Getman adds a protocol when the URL does not include one.
-
-Rules:
-
-- `localhost`, `127.0.0.1`, `0.0.0.0`, and `[::1]` use `http://`
-- All other bare URLs use `https://`
-- URLs that already include a protocol are unchanged
-
-### Desktop Request Path
-
-In Tauri, the frontend calls:
-
-```text
-send_http_request
-```
-
-That command is implemented in:
-
-```text
-src-tauri/src/lib.rs
-```
-
-It uses `reqwest` to send the request outside the browser sandbox. This avoids browser CORS limitations in the desktop app.
-
-### Browser Development Path
-
-In Vite development mode, browser preview requests go through:
-
-```text
-/__getman_proxy__
-```
-
-The dev proxy is defined in:
-
-```text
-vite.config.ts
-```
-
-This makes the browser preview usable while developing.
-
-### Browser Fallback
-
-If neither Tauri nor the dev proxy is available, Getman falls back to Axios. In a normal browser production page, Axios is subject to browser CORS rules.
-
-## Storage Flow
-
-Storage is handled in:
-
-```text
-src/lib/storage.ts
-```
-
-### Tauri Desktop
-
-The frontend calls:
-
-```text
-load_workspace
-save_workspace
-```
-
-These commands are implemented in:
-
-```text
-src-tauri/src/lib.rs
-```
-
-The desktop app writes:
-
-```text
-workspace.json
-```
-
-inside the app data directory.
-
-### Browser Development
-
-In browser development mode, storage falls back to:
-
-```text
-localStorage
-```
-
-Key:
-
-```text
-getman.workspace
-```
-
-## Tauri Layer
-
-Location:
-
-```text
-src-tauri
-```
-
-Important files:
-
-- `tauri.conf.json`: app metadata, window settings, icon, build hooks
-- `Cargo.toml`: Rust dependencies
-- `src/lib.rs`: Tauri commands and app builder
-- `src/main.rs`: Tauri entry point
-- `icons/icon.png`: app icon
-
-Commands:
-
-- `load_workspace`
-- `save_workspace`
-- `send_http_request`
-
-## Theme System
-
-Themes are implemented with CSS variables in:
-
-```text
-src/styles.css
-```
-
-The selected theme is stored in the workspace as:
-
-```ts
-theme: "dark" | "light" | "postman" | "sydney"
-```
-
-`App.tsx` applies the theme to:
-
-```text
-document.documentElement.dataset.theme
-```
-
-This keeps theme colors centralized and avoids duplicating component logic.
-
-## Data Persistence Shape
-
-The workspace shape is:
-
-```ts
-type Workspace = {
-  theme: "dark" | "light" | "postman" | "sydney";
-  activeEnvironmentId: string;
-  environments: Environment[];
-  collections: Collection[];
-  history: HistoryEntry[];
-  activeRequest: ApiRequest;
-};
-```
-
-No database migrations are needed yet because the project stores a single JSON document.
-
-## Current Limitations
-
-- Collection move/reorder behavior is not fully implemented yet.
-- Folder creation and folder move controls can be expanded.
-- Syntax highlighting is currently lightweight; a full editor such as Monaco or CodeMirror could improve the body editor.
-- Desktop packaging depends on platform-specific Tauri prerequisites.
-- Browser preview is a development target, not the privacy/security model for production distribution.
-
-## Suggested Next Steps
-
-- Add drag-and-drop for collection/folder/request movement
-- Add import/export workspace JSON
-- Add request tabs
-- Add keyboard shortcuts
-- Add test runner support for assertions
-- Add Monaco or CodeMirror for richer syntax highlighting
-- Add platform-specific generated icons through the Tauri icon pipeline
+All colours come from CSS variables defined per theme in `src/styles.css` and mapped into Tailwind (`tailwind.config.js`). Fonts are bundled locally with Fontsource: IBM Plex Sans for the interface, JetBrains Mono for code, and Bodoni Moda for the Sydney theme's display type.

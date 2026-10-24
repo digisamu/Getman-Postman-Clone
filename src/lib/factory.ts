@@ -1,73 +1,98 @@
 import { nanoid } from "nanoid";
-import type { ApiRequest, Collection, Environment, KeyValueRow, Workspace } from "../types/api";
+import type { ApiRequest, Collection, Environment, HttpMethod, KeyValueRow, RequestTab, Settings, Workspace } from "../types/api";
 
-export const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const;
+export const METHODS: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+
+export const DEFAULT_SETTINGS: Settings = {
+  timeoutMs: 0,
+  verifySsl: true,
+  followRedirects: true,
+  layout: "horizontal"
+};
 
 export function createRow(key = "", value = "", enabled = true): KeyValueRow {
   return { id: nanoid(), key, value, enabled };
 }
 
-export function createRequest(name = "Untitled Request"): ApiRequest {
+export function createRequest(overrides: Partial<ApiRequest> = {}): ApiRequest {
   return {
     id: nanoid(),
-    name,
+    name: "Untitled request",
     method: "GET",
     url: "",
     headers: [createRow("Accept", "application/json")],
     queryParams: [],
-    body: {
-      type: "json",
-      content: "{}",
-      fields: []
-    }
+    body: { type: "none", content: "", fields: [] },
+    auth: { type: "none", token: "", username: "", password: "" },
+    ...overrides
   };
 }
 
+export function createTab(request: ApiRequest = createRequest(), source: RequestTab["source"] = null): RequestTab {
+  return { id: nanoid(), request, source, dirty: false };
+}
+
 export function createEnvironment(name: string, variables: Array<[string, string]> = []): Environment {
+  return { id: nanoid(), name, variables: variables.map(([key, value]) => createRow(key, value)) };
+}
+
+/** Deep-copies a request with fresh ids so the copy never shares rows with the original. */
+export function cloneRequest(request: ApiRequest, overrides: Partial<ApiRequest> = {}): ApiRequest {
+  const rows = (items: KeyValueRow[]) => items.map((row) => ({ ...row, id: nanoid() }));
   return {
+    ...request,
     id: nanoid(),
-    name,
-    variables: variables.map(([key, value]) => createRow(key, value))
+    headers: rows(request.headers),
+    queryParams: rows(request.queryParams),
+    body: { ...request.body, fields: rows(request.body.fields) },
+    auth: { ...request.auth },
+    ...overrides
   };
 }
 
 export function createInitialWorkspace(): Workspace {
   const local = createEnvironment("Local", [
     ["BASE_URL", "http://localhost:3000"],
-    ["TOKEN", ""],
-    ["USER_ID", "1"]
+    ["TOKEN", ""]
   ]);
+  const demo = createEnvironment("JSONPlaceholder", [["BASE_URL", "https://jsonplaceholder.typicode.com"]]);
 
-  return {
-    theme: "postman",
-    activeEnvironmentId: local.id,
-    environments: [
-      local,
-      createEnvironment("Development", [["BASE_URL", "https://dev.example.test"]]),
-      createEnvironment("Production", [["BASE_URL", "https://api.example.com"]])
-    ],
-    collections: [
+  const collection: Collection = {
+    id: nanoid(),
+    name: "Getting started",
+    folders: [
       {
         id: nanoid(),
-        name: "Getting Started",
-        folders: [
+        kind: "folder",
+        name: "Posts",
+        requests: [
+          { ...createRequest({ name: "List posts", url: "{{BASE_URL}}/posts?_limit=5", queryParams: [createRow("_limit", "5")] }), kind: "request" },
           {
-            id: nanoid(),
-            kind: "folder",
-            name: "Users",
-            requests: [
-              {
-                ...createRequest("List Users"),
-                kind: "request",
-                method: "GET",
-                url: "{{BASE_URL}}/users"
-              }
-            ]
+            ...createRequest({
+              name: "Create post",
+              method: "POST",
+              url: "{{BASE_URL}}/posts",
+              body: { type: "json", content: '{\n  "title": "Hello from Getman",\n  "body": "Sent offline-first.",\n  "userId": 1\n}', fields: [] }
+            }),
+            kind: "request"
           }
         ]
       }
-    ] as Collection[],
+    ]
+  };
+
+  const tab = createTab();
+  return {
+    version: 2,
+    theme: "postman",
+    activeEnvironmentId: demo.id,
+    environments: [demo, local],
+    collections: [collection],
     history: [],
-    activeRequest: createRequest()
+    tabs: [tab],
+    activeTabId: tab.id,
+    settings: { ...DEFAULT_SETTINGS },
+    sidebarWidth: 272,
+    splitRatio: 0.5
   };
 }
