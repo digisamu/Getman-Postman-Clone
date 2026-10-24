@@ -1,122 +1,117 @@
+<div align="center">
+
+<img src="build/icon.png" width="112" alt="Getman icon" />
+
 # Getman
 
-<<<<<<< HEAD
-![User Guide](public/icon.png)
-Getman is an offline-first desktop API testing tool inspired by Postman and Insomnia. It is built for backend developers, students, QA engineers, and DevOps engineers who want a fast local client without accounts, sync, telemetry, subscriptions, analytics, or a database.
-=======
-![Getman](build/icon.png)
->>>>>>> 71bdbb26 (just kill me)
+**A fast, offline API client for your desktop.**<br />
+No account, no cloud, no telemetry. Your requests stay on your computer.
 
-Getman is an offline-first desktop API client in the spirit of Postman and Insomnia, without accounts, sync, telemetry or subscriptions. Everything you create stays in one JSON file on your machine.
+[**Download for macOS**](#download) · [**Windows**](#download) · [**Linux**](#download)
+
+<br />
+
+<img src="docs/screenshots/postman-theme.png" alt="Getman showing a GET request and its JSON response" width="900" />
+
+</div>
+
+<br />
 
 ## Download
 
-Get the latest installer from the **[Releases page](https://github.com/digisamu/Getman-Postman-Clone/releases/latest)**.
-
-| System | File |
+| Your computer | Download |
 | --- | --- |
-| macOS (Apple Silicon: M1 and later) | `Getman-<version>-mac-arm64.dmg` |
-| macOS (Intel) | `Getman-<version>-mac-x64.dmg` |
-| Windows 10/11 | `Getman-<version>-windows-setup.exe` (or the `.msi`) |
-| Linux | `Getman-<version>-linux-x86_64.AppImage`, or the `.deb` for Debian/Ubuntu |
+| Mac with Apple chip (M1, M2, M3, M4) | [Getman-mac-arm64.dmg](https://github.com/digisamu/Getman-Postman-Clone/releases/latest/download/Getman-mac-arm64.dmg) |
+| Mac with Intel chip | [Getman-mac-x64.dmg](https://github.com/digisamu/Getman-Postman-Clone/releases/latest/download/Getman-mac-x64.dmg) |
+| Windows 10 or 11 | [Getman-windows-setup.exe](https://github.com/digisamu/Getman-Postman-Clone/releases/latest/download/Getman-windows-setup.exe) |
+| Linux (any distro) | [Getman-linux.AppImage](https://github.com/digisamu/Getman-Postman-Clone/releases/latest/download/Getman-linux.AppImage) |
+| Linux (Debian, Ubuntu) | [Getman-linux.deb](https://github.com/digisamu/Getman-Postman-Clone/releases/latest/download/Getman-linux.deb) |
 
-The builds are not signed with a paid developer certificate, so the first launch needs one extra step:
+Not sure which Mac you have? Open the Apple menu → **About This Mac** and look at **Chip**.
 
-- **macOS**: drag Getman into Applications and open it. When macOS blocks it, go to **System Settings → Privacy & Security** and click **Open Anyway**.
-- **Windows**: on the SmartScreen prompt click **More info → Run anyway**.
-- **Linux**: make the AppImage executable (`chmod +x Getman-*.AppImage`) and run it.
+All files are also on the [Releases page](https://github.com/digisamu/Getman-Postman-Clone/releases/latest).
 
-## Features
+### First launch
 
-- Request tabs with unsaved-change tracking; `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`
-- URL bar with `{{variable}}` highlighting (green when defined, red when missing) and two-way sync with the query params table
-- Paste a cURL command into the URL bar to import it
-- Auth: Bearer token and Basic auth
-- Bodies: JSON (with live validation that understands `{{variables}}`), text, multipart form data, `x-www-form-urlencoded`
-- Code editor with syntax highlighting, folding, bracket matching and search (CodeMirror 6)
-- Response viewer: colour-coded status, time, size, Pretty / Raw / Preview (HTML and images), headers, parsed cookies, copy, save to file
-- Collections → folders → requests, with rename, duplicate, delete, search, and Postman v2.1 import/export
-- Environments manager, history grouped by day, settings for timeout, SSL verification, redirects and layout
-- Developer tools: JWT decoder, Base64, JSON formatter, UUID v4, timestamp converter
-- Themes: Postman, Dark, Light and Sydney
+Getman isn't signed with a paid Apple or Microsoft certificate yet, so your computer asks once before opening it.
 
-Requests are sent from the Electron main process with a pooled keep-alive HTTP client, so they are not limited by browser CORS rules and repeat calls skip the TLS handshake.
+- **Mac:** open the `.dmg`, drag **Getman** into **Applications**, and open it. If macOS says it can't check the app, open **System Settings → Privacy & Security**, scroll down, and click **Open Anyway**.
+- **Windows:** if a blue "Windows protected your PC" box appears, click **More info → Run anyway**.
+- **Linux:** right-click the `.AppImage` → **Properties → Allow executing as program**, then double-click it.
+
+<br />
+
+## What it does
+
+**Send requests.** Every HTTP method, with query params, headers, Bearer or Basic auth, and JSON, text, form-data or URL-encoded bodies. Paste a cURL command into the URL bar and it turns into a request.
+
+**Read responses.** Status, time and size at a glance. Pretty-printed JSON with folding and search, HTML and image previews, headers, cookies, and one click to copy or save.
+
+**Stay organised.** Tabs for open requests, collections with folders, history grouped by day, and environments with `{{variables}}` that light up green when they're set and red when they're missing.
+
+**Move your work.** Import and export Postman v2.1 collections. Copy any request as cURL, JavaScript, Python or Java.
+
+**Handy tools.** JWT decoder, Base64, JSON formatter, UUID generator and timestamp converter, all offline.
+
+**Four themes.** Postman, Dark, Light, and Sydney:
+
+<div align="center">
+<img src="docs/screenshots/sydney-theme.png" alt="Getman in the Sydney theme" width="900" />
+</div>
+
+<br />
 
 ## Keyboard shortcuts
 
-| Action | macOS | Windows / Linux |
+| Action | Mac | Windows / Linux |
 | --- | --- | --- |
-| Send request | `⌘ Enter` | `Ctrl Enter` |
-| Cancel request | `Esc` | `Esc` |
-| New tab | `⌘ T` | `Ctrl T` |
-| Close tab | `⌘ W` | `Ctrl W` |
-| Next / previous tab | `Ctrl Tab` / `Ctrl Shift Tab` | same |
-| Save / Save as | `⌘ S` / `⌘ ⇧ S` | `Ctrl S` / `Ctrl Shift S` |
-| Import collection | `⌘ O` | `Ctrl O` |
-| Settings | `⌘ ,` | `Ctrl ,` |
+| Send request | <kbd>⌘</kbd> <kbd>Enter</kbd> | <kbd>Ctrl</kbd> <kbd>Enter</kbd> |
+| Cancel request | <kbd>Esc</kbd> | <kbd>Esc</kbd> |
+| New tab | <kbd>⌘</kbd> <kbd>T</kbd> | <kbd>Ctrl</kbd> <kbd>T</kbd> |
+| Close tab | <kbd>⌘</kbd> <kbd>W</kbd> | <kbd>Ctrl</kbd> <kbd>W</kbd> |
+| Switch tab | <kbd>Ctrl</kbd> <kbd>Tab</kbd> | <kbd>Ctrl</kbd> <kbd>Tab</kbd> |
+| Save | <kbd>⌘</kbd> <kbd>S</kbd> | <kbd>Ctrl</kbd> <kbd>S</kbd> |
+| Import collection | <kbd>⌘</kbd> <kbd>O</kbd> | <kbd>Ctrl</kbd> <kbd>O</kbd> |
+| Settings | <kbd>⌘</kbd> <kbd>,</kbd> | <kbd>Ctrl</kbd> <kbd>,</kbd> |
 
-## Development
+<br />
 
-Requirements: Node.js 20 or newer and npm. No Rust toolchain is needed.
+## Your data
+
+Everything is saved in one file on your computer:
+
+- **Mac:** `~/Library/Application Support/Getman/workspace.json`
+- **Windows:** `%APPDATA%\Getman\workspace.json`
+- **Linux:** `~/.config/Getman/workspace.json`
+
+Coming from Getman 0.1? Your collections, environments and history are imported automatically on first launch.
+
+<br />
+
+## For developers
+
+You need [Node.js](https://nodejs.org) 20 or newer.
 
 ```bash
 npm install
-```
-
-```bash
 npm run dev
 ```
 
-`npm run dev` starts Vite and Electron together and restarts Electron when files in `electron/` change. To work on the UI in a plain browser instead, run `npm run dev:web` and open http://localhost:1420 (requests go through a dev-server proxy that uses the same HTTP engine).
-
-```bash
-npm test
-```
-
-```bash
-npm run build
-```
-
-`npm run build` type-checks, builds the renderer into `dist/` and bundles the main and preload scripts into `dist-electron/`.
-
-## Packaging
-
-```bash
-npm run dist:mac
-```
-
-```bash
-npm run dist:win
-```
-
-```bash
-npm run dist:linux
-```
-
-Installers are written to `release/`: `.dmg`/`.zip` for Apple Silicon and Intel on macOS, `.exe` (NSIS) and `.msi` on Windows, `.AppImage`/`.deb` on Linux. Build each platform on that platform. macOS builds are ad-hoc signed, not notarized.
-
-### Publishing a release
-
-Bump `version` in `package.json`, commit, then push a matching tag:
-
-```bash
-git tag v0.2.0 && git push origin v0.2.0
-```
-
-The [Release workflow](.github/workflows/release.yml) builds installers on macOS, Windows and Linux and publishes them as a GitHub Release for that tag.
-
-## Where data is stored
-
-| OS | Path |
+| Command | What it does |
 | --- | --- |
-| macOS | `~/Library/Application Support/Getman/workspace.json` |
-| Windows | `%APPDATA%\Getman\workspace.json` |
-| Linux | `~/.config/Getman/workspace.json` |
+| `npm run dev` | Runs the app with live reload |
+| `npm run dev:web` | Runs the UI in a browser at http://localhost:1420 |
+| `npm test` | Runs the unit tests |
+| `npm run build` | Type-checks and builds |
+| `npm run dist:mac` / `dist:win` / `dist:linux` | Builds installers into `release/` |
 
-On first launch Getman imports the workspace written by the older Tauri build (`com.getman.desktop/workspace.json`), so existing collections, environments and history carry over. Set `GETMAN_USER_DATA=/some/folder` to run with a separate profile.
+**Publishing a new version:** change `version` in `package.json`, commit, then push a tag. GitHub builds the installers for all three systems and publishes them on the Releases page.
 
-## Documentation
+```bash
+git tag v0.2.1
+git push origin v0.2.1
+```
 
-- [User guide](docs/USER_GUIDE.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
+Built with Electron, React, TypeScript, Vite, Tailwind CSS, Zustand and CodeMirror.
+
+More detail: [User guide](docs/USER_GUIDE.md) · [Architecture](docs/ARCHITECTURE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)

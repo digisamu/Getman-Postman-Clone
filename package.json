@@ -93,18 +93,25 @@
         }
       ]
     },
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "artifactName": "${productName}-${os}-${arch}.${ext}",
     "dmg": {
-      "title": "Getman ${version}"
+      "title": "Getman ${version}",
+      "artifactName": "${productName}-mac-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "${productName}-${version}-windows-setup.${ext}"
+      "artifactName": "${productName}-windows-setup.${ext}"
     },
     "msi": {
-      "artifactName": "${productName}-${version}-windows.${ext}"
+      "artifactName": "${productName}-windows.${ext}"
+    },
+    "appImage": {
+      "artifactName": "${productName}-linux.${ext}"
+    },
+    "deb": {
+      "artifactName": "${productName}-linux.${ext}"
     }
   },
   "devDependencies": {
